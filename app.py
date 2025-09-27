@@ -163,6 +163,7 @@ async def health_check():
     """Health check endpoint"""
     return {"status": "healthy"}
 
+
 def create_image_with_openai(post : str):
     """Create image using OpenAI API"""
     prompt = f"Create an image for the following post: {post}"
@@ -192,9 +193,9 @@ def create_image_with_openai(post : str):
     return True, "image.png", None
 
 @app.get("/image-generation")
-async def image_generation():
+async def image_generation(request: GenerateContentRequest):
     """Generate image using OpenAI API"""
-    success, image_path, error_message = create_image_with_openai("test")
+    success, image_path, error_message = create_image_with_openai(request.prompt)
     
     if success:
         return {"image_path": image_path}
