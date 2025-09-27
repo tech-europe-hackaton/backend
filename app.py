@@ -112,8 +112,8 @@ def generate_content_with_dust(topics_of_interest: List[str], ai_voice: str, abo
                 len(dust_data["conversation"]["content"][1]) > 0):
                 generated_content = dust_data["conversation"]["content"][1][0].get("content")
         except (KeyError, IndexError, TypeError) as e:
-            print(f"Error extracting content from Dust response: {e}")
-            generated_content = "Error extracting generated content"
+            print(f"Generated content: {generated_content}. Error extracting content from Dust response: {e}")
+            generated_content = f"Error extracting generated content: {generated_content}"
         
         # Parse the generated content as JSON
         parsed_content = None
@@ -121,8 +121,8 @@ def generate_content_with_dust(topics_of_interest: List[str], ai_voice: str, abo
             if generated_content:
                 parsed_content = json.loads(generated_content)
         except json.JSONDecodeError as e:
-            print(f"Error parsing generated content as JSON: {e}")
-            parsed_content = {"error": "Failed to parse generated content as JSON"}
+            print(f"Generated content: {generated_content}.Error parsing generated content as JSON: {e}")
+            parsed_content = {"error": f"Failed to parse generated content as JSON: {generated_content}"}
         
         return True, parsed_content, None
         
