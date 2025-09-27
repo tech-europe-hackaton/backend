@@ -2,6 +2,7 @@ import requests
 import json
 import os
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Dict, Optional
 from dotenv import load_dotenv
@@ -15,11 +16,19 @@ load_dotenv()
 # Initialize FastAPI app
 app = FastAPI(title="Content Generation API", version="1.0.0")
 
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_headers=["Content-Type"],
+    allow_methods=["POST", "OPTIONS"],
+)
+
 # Environment variables
 WORKSPACE_ID = os.getenv('WORKSPACE_ID')
 AGENT_ID = os.getenv('AGENT_ID')
 DUST_API_KEY = os.getenv('DUST_API_KEY')
-OPEN_API_KEY = os.getenv('OPEN_API_KEY')
+OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 
 # Dust API configuration
 dust_url = f"https://dust.tt/api/v1/w/{WORKSPACE_ID}/assistant/conversations"
@@ -29,8 +38,10 @@ dust_headers = {
     "Authorization": f"Bearer {DUST_API_KEY}"
 }
 
-# Open API configuration
-client = OpenAI(api_key=os.getenv("OPEN_API_KEY"))
+# OpenAI configuration (only initialize if API key is available)
+client = None
+if OPENAI_API_KEY:
+    client = OpenAI(api_key=OPENAI_API_KEY)
 
 # Pydantic models
 class GenerateContentRequest(BaseModel):
@@ -164,41 +175,37 @@ async def health_check():
     return {"status": "healthy"}
 
 
-def create_image_with_openai(post : str):
-    """Create image using OpenAI API"""
-    prompt = f"Create an image for the following post: {post}"
+def create_image_with_openai(post: str):
+    """Create image using OpenAI DALL-E API"""
+    try:
+        if not client:
+            return False, None, "OpenAI API key not configured"
+            
+        prompt = f"Create a social media post image for: {post}"
+        
+        response = client.images.generate(
+            model="dall-e-3",
+            prompt=prompt,
+            size="1024x1024",
+            quality="standard",
+            n=1
+        )
+        
+        # Get the image URL
+        image_url = response.data[0].url
+        
+        return True, image_url, None
+            
+    except Exception as e:
+        return False, None, f"OpenAI API error: {str(e)}"
 
-    
-    response = client.responses.create(
-        model="gpt-5",
-        input="Generate an image of gray tabby cat hugging an otter with an orange scarf",
-        tools=[{"type": "image_generation"}],
-    )
-
-    if response.status_code != 200:
-        return False, None, f"OpenAI API call failed with status {response.status_code}"
-    
-    # Save the image to a file
-    image_data = [
-        output.result
-        for output in response.output
-        if output.type == "image_generation_call"
-    ]
-    
-    if image_data:
-        image_base64 = image_data[0]
-        with open("image.png", "wb") as f:
-            f.write(base64.b64decode(image_base64))
-
-    return True, "image.png", None
-
-@app.get("/image-generation")
-async def image_generation(request: GenerateContentRequest):
+@app.post("/image-generation")
+async def image_generation(request: GenerateImageRequest):
     """Generate image using OpenAI API"""
-    success, image_path, error_message = create_image_with_openai(request.prompt)
+    success, image_url, error_message = create_image_with_openai(request.prompt)
     
     if success:
-        return {"image_path": image_path}
+        return {"image_url": image_url}
     else:
         raise HTTPException(status_code=500, detail=error_message)
 
