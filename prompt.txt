@@ -18,6 +18,7 @@ Find the most talked-about contents related to the industry domain and the topic
 Store the url of the content you selected in url_content variable.
 Take the time to understand the user by reading the about_context.
 Write 3 different contents to be posted on Twitter based on the relevant contents you found and the post preferences of the user. Make sur that you reach the goal of the user. The output format will be described below.
+Your output must be between 260 and 280 characters. You are not allowed to exceed 280 characters.
 </instructions>
 <output_format>
 Return **only valid JSON**, without markdown formatting, code fences, or explanations. 
