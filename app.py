@@ -5,6 +5,11 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import List, Dict, Optional
 from dotenv import load_dotenv
+from openai import OpenAI
+import base64
+
+# Open API configuration
+client = OpenAI(api_key=OPEN_API_KEY)
 
 load_dotenv()
 
@@ -15,6 +20,7 @@ app = FastAPI(title="Content Generation API", version="1.0.0")
 WORKSPACE_ID = os.getenv('WORKSPACE_ID')
 AGENT_ID = os.getenv('AGENT_ID')
 DUST_API_KEY = os.getenv('DUST_API_KEY')
+OPEN_API_KEY = os.getenv('OPEN_API_KEY')
 
 # Dust API configuration
 dust_url = f"https://dust.tt/api/v1/w/{WORKSPACE_ID}/assistant/conversations"
@@ -31,6 +37,9 @@ class GenerateContentRequest(BaseModel):
     about_context: str = "I want to promote my startup that creates an AI agent to help HR people to recruit"
     post_preference: str = "make impactful post"
 
+class GenerateImageRequest(BaseModel):
+    prompt: str = "A beautiful landscape with mountains and a lake"
+    
 # Response will be the parsed JSON content directly, no wrapper model needed
 
 def load_prompt_template() -> str:
@@ -151,6 +160,44 @@ async def generate_content(request: GenerateContentRequest):
 async def health_check():
     """Health check endpoint"""
     return {"status": "healthy"}
+
+def create_image_with_openai(post : str):
+    """Create image using OpenAI API"""
+    prompt = f"Create an image for the following post: {post}"
+
+    
+    response = client.responses.create(
+        model="gpt-5",
+        input="Generate an image of gray tabby cat hugging an otter with an orange scarf",
+        tools=[{"type": "image_generation"}],
+    )
+
+    if response.status_code != 200:
+        return False, None, f"OpenAI API call failed with status {response.status_code}"
+    
+    # Save the image to a file
+    image_data = [
+        output.result
+        for output in response.output
+        if output.type == "image_generation_call"
+    ]
+    
+    if image_data:
+        image_base64 = image_data[0]
+        with open("image.png", "wb") as f:
+            f.write(base64.b64decode(image_base64))
+
+    return True, "image.png", None
+
+@app.get("/image-generation")
+async def image_generation():
+    """Generate image using OpenAI API"""
+    success, image_path, error_message = create_image_with_openai("test")
+    
+    if success:
+        return {"image_path": image_path}
+    else:
+        raise HTTPException(status_code=500, detail=error_message)
 
 if __name__ == "__main__":
     import uvicorn
