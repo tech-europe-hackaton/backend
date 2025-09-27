@@ -181,7 +181,8 @@ def create_image_with_openai(post: str):
         if not client:
             return False, None, "OpenAI API key not configured"
             
-        prompt = f"Create a social media post image for: {post}"
+        instructions = "Can generate a simple minimalistic profiessional abstract image for the following prompt? Don't display any text on the image. "
+        prompt = instructions + f"Create a social media post image for: {post}"
         
         response = client.images.generate(
             model="dall-e-3",
