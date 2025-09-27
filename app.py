@@ -8,8 +8,7 @@ from dotenv import load_dotenv
 from openai import OpenAI
 import base64
 
-# Open API configuration
-client = OpenAI(api_key=OPEN_API_KEY)
+
 
 load_dotenv()
 
@@ -29,6 +28,9 @@ dust_headers = {
     "content-type": "application/json",
     "Authorization": f"Bearer {DUST_API_KEY}"
 }
+
+# Open API configuration
+client = OpenAI(api_key=os.getenv("OPEN_API_KEY"))
 
 # Pydantic models
 class GenerateContentRequest(BaseModel):
